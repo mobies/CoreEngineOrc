@@ -35,6 +35,40 @@ st.markdown("""
 # Initialize Managers
 sm = StateManager()
 
+# --- LOGIN PROTECTION ---
+def check_password():
+    """Returns True if the user had the correct password."""
+    # Get password from Secrets (Cloud) or Env (Local)
+    correct_password = os.getenv("DASHBOARD_PASSWORD")
+    try:
+        import streamlit as st
+        correct_password = st.secrets.get("DASHBOARD_PASSWORD") or correct_password
+    except:
+        pass
+
+    if not correct_password:
+        return True # Password tidak diset, biarkan terbuka
+
+    if "password_correct" not in st.session_state:
+        st.session_state.password_correct = False
+
+    if st.session_state.password_correct:
+        return True
+
+    # Show login form
+    st.title("🔐 Core Engine - Locked")
+    password_input = st.text_input("Masukkan Password Dashboard", type="password")
+    if st.button("Login"):
+        if password_input == correct_password:
+            st.session_state.password_correct = True
+            st.rerun()
+        else:
+            st.error("❌ Password salah!")
+    return False
+
+if not check_password():
+    st.stop() # Hentikan eksekusi jika belum login
+
 try:
     orch = Orchestrator()
     orch_error = None
