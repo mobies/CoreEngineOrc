@@ -14,3 +14,4 @@ langchain-anthropic       # Untuk Claude (Optional)
 python-dotenv             # Untuk membaca file .env
 requests                  # Untuk pemanggilan API custom
 rich                      # Untuk tampilan terminal yang bagus (Monitoring)
+streamlit                 # Untuk Dashboard Visual (Web Interface)
