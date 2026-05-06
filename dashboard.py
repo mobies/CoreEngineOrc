@@ -279,23 +279,44 @@ if menu == "Project List":
                     with open(st.session_state.selected_project, 'w') as f:
                         json.dump(plan_data, f, indent=4)
                     
-                    with st.spinner(f"Agent ({task['agent_type']}) sedang bekerja di {project_folder}..."):
+                    with st.spinner(f"Agent sedang bekerja..."):
                         try:
-                            context = f"Project Structure: {json.dumps(plan_data.get('folder_structure', {}))}"
-                            result = agent.execute_task(task['title'], task['description'], context=context)
+                            # --- QUALITY LOOP (Max 2 revisions) ---
+                            max_revisions = 2
+                            current_rev = 0
+                            feedback = ""
                             
-                            # Simpan hasil ke session state agar tidak hilang
-                            st.session_state[f"last_result_{task['id']}"] = result
+                            while current_rev <= max_revisions:
+                                context = f"Project Structure: {json.dumps(plan_data.get('folder_structure', {}))}"
+                                if feedback:
+                                    context += f"\n\nCRITICAL FEEDBACK FROM PREVIOUS ATTEMPT:\n{feedback}"
+                                
+                                # Execute Task
+                                result = agent.execute_task(task['title'], task['description'], context=context)
+                                
+                                # Review Task
+                                critic = CriticAgent()
+                                review = critic.review_task(task['title'], task['description'], result['output'], result['execution_log'])
+                                result['review'] = review
+                                
+                                # Simpan hasil terbaru
+                                st.session_state[f"last_result_{task['id']}"] = result
+                                
+                                # Jika skor bagus atau sudah mentok revisi, keluar loop
+                                if review['score'] >= 7 or current_rev == max_revisions:
+                                    break
+                                
+                                # Jika skor buruk, siapkan feedback dan ulangi
+                                feedback = review['raw_review']
+                                current_rev += 1
+                                st.warning(f"Skor rendah ({review['score']}/10). Meminta revisi ke-{current_rev}...")
                             
-                            # Update status ke completed jika aksi berhasil
-                            if result['status'] == 'success':
-                                task['status'] = 'completed'
-                                with open(st.session_state.selected_project, 'w') as f:
-                                    json.dump(plan_data, f, indent=4)
-                                st.success(f"Tugas selesai dalam {result['attempts']} percobaan!")
-                                st.rerun()
-                            else:
-                                st.error(f"Gagal setelah {result['attempts']} percobaan. Cek log.")
+                            # Update status final (set to completed tapi minta approval di UI)
+                            task['status'] = 'completed'
+                            with open(st.session_state.selected_project, 'w') as f:
+                                json.dump(plan_data, f, indent=4)
+                            st.success(f"Agen telah menyelesaikan tugas! Silakan review dan Approve.")
+                            st.rerun()
                         except Exception as e:
                             st.error(f"Eksekusi Gagal: {e}")
 
@@ -304,6 +325,27 @@ if menu == "Project List":
                     res = st.session_state[f"last_result_{task['id']}"]
                     with st.container(border=True):
                         st.markdown(f"#### 🤖 Last Agent Report ({res.get('status', 'N/A')})")
+                        
+                        # Display Review
+                        if 'review' in res:
+                            rev = res['review']
+                            score = rev.get('score', 0)
+                            color = "green" if score >= 8 else "orange" if score >= 5 else "red"
+                            st.markdown(f"**Quality Score:** :{color}[{score}/10]")
+                            with st.expander("🔍 View Critic Feedback"):
+                                st.write(rev.get('raw_review', 'No detail'))
+                        
+                        # Approval Button
+                        if task['status'] == 'completed' and not task.get('finalized', False):
+                            if st.button(f"✅ Approve & Finalize Task {task['id']}", key=f"app_{task['id']}", use_container_width=True):
+                                task['finalized'] = True
+                                with open(st.session_state.selected_project, 'w') as f:
+                                    json.dump(plan_data, f, indent=4)
+                                st.success("Task Finalized!")
+                                st.rerun()
+                        elif task.get('finalized'):
+                            st.success("🌟 Task Finalized & Approved")
+                        
                         st.write(f"**Attempts:** {res.get('attempts', 1)}")
                         st.write(f"**Last Thought:** {res.get('thought', 'N/A')}")
                         

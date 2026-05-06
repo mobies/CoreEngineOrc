@@ -155,6 +155,61 @@ class SubAgent:
         except Exception as e:
             return f"Error: {str(e)}"
 
+class CriticAgent:
+    """
+    CriticAgent reviews the work of SubAgents.
+    It provides a score and feedback to ensure high quality.
+    """
+    def __init__(self, adapter: AIAdapter = None):
+        self.adapter = adapter or AIAdapter()
+
+    def review_task(self, task_title: str, task_desc: str, agent_output: str, execution_log: str) -> Dict[str, Any]:
+        prompt = f"""
+        You are a Senior Quality Assurance Engineer & Code Reviewer.
+        Task: {task_title}
+        Original Goal: {task_desc}
+        
+        Agent Execution Output:
+        {agent_output}
+        
+        Execution Log:
+        {execution_log}
+        
+        Instructions:
+        1. Evaluate if the agent successfully achieved the goal.
+        2. Check for bugs, security risks, or missing requirements.
+        3. Provide a Score from 1 to 10.
+        
+        Format your response EXACTLY like this:
+        SCORE: [1-10]
+        CRITIQUE: [Your detailed feedback]
+        SUGGESTIONS: [Specific steps to fix the issues]
+        FINAL_VERDICT: [PASS | FAIL]
+        """
+        
+        response = self.adapter.chat(prompt)
+        res_text = response if isinstance(response, str) else str(response)
+        
+        # Simple Parsing
+        lines = res_text.split("\n")
+        score = 0
+        verdict = "FAIL"
+        
+        for line in lines:
+            if line.startswith("SCORE:"):
+                try:
+                    score = int(line.replace("SCORE:", "").strip().split("/")[0])
+                except:
+                    score = 5
+            if line.startswith("FINAL_VERDICT:"):
+                verdict = line.replace("FINAL_VERDICT:", "").strip()
+
+        return {
+            "score": score,
+            "verdict": verdict,
+            "raw_review": res_text
+        }
+
 if __name__ == "__main__":
     # Quick Test
     agent = SubAgent()
