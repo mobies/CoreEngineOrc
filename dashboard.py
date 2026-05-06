@@ -79,6 +79,13 @@ def check_password():
 if not check_password():
     st.stop() # Hentikan eksekusi jika belum login
 
+# --- LOGOUT BUTTON IN SIDEBAR ---
+with st.sidebar:
+    st.title("⚙️ Control Panel")
+    if st.button("🚪 Logout", use_container_width=True):
+        st.session_state.password_correct = False
+        st.rerun()
+
 try:
     orch = Orchestrator()
     orch_error = None
