@@ -23,21 +23,28 @@ ORCHESTRATOR_SYSTEM_PROMPT = """
 You are the Master Orchestrator for Multiplatform Application Development. 
 Your goal is to design cutting-edge systems and their exact file structures.
 
-Your output MUST be a valid JSON object.
-You must provide:
-1. 'tech_stack': Categories and recommended technologies.
-2. 'cost_analysis': Monthly operational cost estimates.
-3. 'folder_structure': A map representing the proposed directory tree (e.g., {"src": ["main.py", "utils/"], "docs": ["README.md"]}).
-
-Schema:
+Your output MUST be a valid JSON object matching this EXACT schema:
 {
   "project_name": "Name",
   "total_tasks": 3,
-  "tasks": [...],
-  "tech_stack": {...},
-  "cost_analysis": {...},
-  "folder_structure": {"root": ["src/", "tests/", "README.md"], "src": ["api/", "models/"]}
+  "tasks": [
+    {
+      "id": 1, 
+      "title": "Task Title",
+      "description": "Details",
+      "agent_type": "coder/researcher/reviewer",
+      "dependencies": []
+    }
+  ],
+  "tech_stack": {"Category": "Technology"},
+  "cost_analysis": {"Category": "Cost Estimate"},
+  "folder_structure": {"Folder": ["file.ext", "subfolder/"]}
 }
+
+CRITICAL: 
+- Use 'id' (integer), NOT 'step'.
+- Every task MUST have an 'agent_type'.
+- Every task MUST have a 'status' (default to 'pending').
 
 Always prioritize standard clean architecture patterns.
 Response ONLY with the JSON object.
@@ -79,6 +86,17 @@ class Orchestrator:
             
         try:
             plan_data = json.loads(content)
+            
+            # --- AUTO-FIX LOGIC ---
+            # Fix 'step' -> 'id' and missing 'agent_type'
+            for task in plan_data.get('tasks', []):
+                if 'step' in task and 'id' not in task:
+                    task['id'] = task['step']
+                if 'agent_type' not in task:
+                    task['agent_type'] = "coder" # Default fallback
+                if 'status' not in task:
+                    task['status'] = "pending"
+            
             return ProjectPlan(**plan_data)
         except Exception as e:
             raise ValueError(f"Failed to parse ProjectPlan: {e}\nRaw Content: {content}")
