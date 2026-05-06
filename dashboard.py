@@ -74,6 +74,20 @@ if menu == "Dashboard":
         
         st.progress(completed/total)
         
+        # Tech Stack & Cost Insight
+        col_tech, col_cost = st.columns(2)
+        with col_tech:
+            with st.container(border=True):
+                st.markdown("#### 🛠️ Tech Stack")
+                for cat, tech in plan_data.get('tech_stack', {}).items():
+                    st.markdown(f"**{cat}:** `{tech}`")
+        
+        with col_cost:
+            with st.container(border=True):
+                st.markdown("#### 💰 Cost Analysis")
+                for cat, cost in plan_data.get('cost_analysis', {}).items():
+                    st.markdown(f"**{cat}:** `{cost}`")
+
         st.markdown("### 📋 Task Board")
         for task in plan_data['tasks']:
             with st.expander(f"Task {task['id']}: {task['title']} - [{task['status'].upper()}]"):

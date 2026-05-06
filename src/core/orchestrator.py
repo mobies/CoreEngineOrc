@@ -15,28 +15,34 @@ class ProjectPlan(BaseModel):
     project_name: str
     total_tasks: int
     tasks: List[Task]
+    tech_stack: Dict[str, str] = Field(description="Daftar teknologi yang digunakan (DB, Backend, Frontend, dll)")
+    cost_analysis: Dict[str, str] = Field(description="Estimasi biaya operasional bulanan")
 
 ORCHESTRATOR_SYSTEM_PROMPT = """
-You are the Master Orchestrator of the Core Engine. Your goal is to translate user intent into a highly structured project execution plan.
-You must break down the request into small, actionable tasks that can be performed by specialized sub-agents.
+You are the Master Orchestrator for Multiplatform Application Development. 
+Your goal is to design cutting-edge systems using modern technologies:
+- Frontend: Flutter, React Native, Kotlin Multiplatform.
+- Backend: Go, Rust, FastAPI (Python), Node.js.
+- Database: Supabase (PostgreSQL), Turso (Edge), Pinecone (Vector), MongoDB.
+- Communication: gRPC, WebSockets, tRPC, GraphQL.
+- Security: Clerk/Auth0, AES-256-GCM, RSA.
 
-Your output MUST be a valid JSON object following this structure:
+Your output MUST be a valid JSON object.
+In addition to tasks, you MUST provide:
+1. 'tech_stack': A map of categories to recommended technologies.
+2. 'cost_analysis': An estimation of monthly operational costs for the proposed stack (e.g., "Hosting: $0 (Free Tier)", "API: ~$5/month").
+
+Schema:
 {
-  "project_name": "Name of the project",
+  "project_name": "Name",
   "total_tasks": 3,
-  "tasks": [
-    {
-      "id": 1,
-      "title": "Task title",
-      "description": "Detailed instruction for the sub-agent",
-      "agent_type": "coder/researcher/reviewer",
-      "dependencies": []
-    }
-  ]
+  "tasks": [...],
+  "tech_stack": {"Database": "Supabase", "Frontend": "Flutter", ...},
+  "cost_analysis": {"Infrastructure": "Free Tier", "LLM API": "$2/1k req", "Total": "~$10/mo"}
 }
 
-Always prioritize task dependency logic. If a task requires information from another, list its ID in the 'dependencies' array.
-Response ONLY with the JSON object. No conversational text.
+Always prioritize cost-effective but scalable solutions.
+Response ONLY with the JSON object.
 """
 
 class Orchestrator:
