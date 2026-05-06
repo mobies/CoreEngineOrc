@@ -1,0 +1,34 @@
+{
+    "project_name": "Simple Python Text Encryption Module",
+    "total_tasks": 3,
+    "tasks": [
+        {
+            "id": 1,
+            "title": "Design Encryption Logic",
+            "description": "Define the logic for a simple encryption algorithm, such as Caesar Cipher or XOR, including the requirements for both encryption and decryption processes.",
+            "agent_type": "researcher",
+            "dependencies": [],
+            "status": "pending"
+        },
+        {
+            "id": 2,
+            "title": "Develop Python Encryption Module",
+            "description": "Implement the designed algorithm in a Python script. Create functions for 'encrypt' and 'decrypt' that handle string inputs and return the processed text.",
+            "agent_type": "coder",
+            "dependencies": [
+                1
+            ],
+            "status": "pending"
+        },
+        {
+            "id": 3,
+            "title": "Review and Test Module",
+            "description": "Conduct a code review to ensure efficiency and security. Run test cases with various strings and keys to verify that decrypting an encrypted string returns the original value.",
+            "agent_type": "reviewer",
+            "dependencies": [
+                2
+            ],
+            "status": "pending"
+        }
+    ]
+}

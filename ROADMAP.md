@@ -30,7 +30,7 @@ This document tracks the progress of building the Core Engine Orchestrator, desi
 *Langkah ini membangun kemampuan AI untuk merencana dan menerjemahkan keinginan Anda.*
 - [x] **System Prompt Engineering:** Membuat instruksi "Master" untuk Core Engine sebagai Orchestrator.
 - [x] **Modul Planning (Task Decomposition):** AI harus bisa memecah perintah user menjadi daftar tugas JSON.
-- [ ] **State Management:** Membangun sistem memori agar Orchestrator ingat apa yang sedang dikerjakan Sub-Agent.
+- [x] **State Management:** Membangun sistem memori agar Orchestrator ingat apa yang sedang dikerjakan Sub-Agent.
 
 ---
 

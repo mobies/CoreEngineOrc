@@ -9,6 +9,7 @@ class Task(BaseModel):
     description: str
     agent_type: str = Field(description="Jenis agen yang cocok (misal: coder, researcher, reviewer)")
     dependencies: List[int] = Field(default_factory=list, description="ID tugas yang harus selesai lebih dulu")
+    status: str = Field(default="pending", description="Status tugas (pending, in_progress, completed)")
 
 class ProjectPlan(BaseModel):
     project_name: str
