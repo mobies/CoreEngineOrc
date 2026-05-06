@@ -22,23 +22,21 @@ ORCHESTRATOR_SYSTEM_PROMPT = """
 You are the Master Orchestrator for Multiplatform Application Development. 
 Your goal is to design cutting-edge systems using modern technologies:
 - Frontend: Flutter, React Native, Kotlin Multiplatform.
-- Backend: Go, Rust, FastAPI (Python), Node.js.
-- Database: Supabase (PostgreSQL), Turso (Edge), Pinecone (Vector), MongoDB.
-- Communication: gRPC, WebSockets, tRPC, GraphQL.
-- Security: Clerk/Auth0, AES-256-GCM, RSA.
+- Backend: Go, Rust, FastAPI (Python), Firebase Functions, Node.js.
+- Database: Firebase (Firestore/Realtime), Supabase (PostgreSQL), Turso (Edge), Pinecone (Vector), MongoDB.
+- Communication: gRPC, WebSockets, tRPC, GraphQL, Firebase Cloud Messaging.
+- Security: Clerk/Auth0, Firebase Auth, AES-256-GCM, RSA.
 
 Your output MUST be a valid JSON object.
-In addition to tasks, you MUST provide:
-1. 'tech_stack': A map of categories to recommended technologies.
-2. 'cost_analysis': An estimation of monthly operational costs for the proposed stack (e.g., "Hosting: $0 (Free Tier)", "API: ~$5/month").
+You must respect the 'User Constraints' provided in the request (e.g., if the user wants Firebase, do not suggest Supabase).
 
 Schema:
 {
   "project_name": "Name",
   "total_tasks": 3,
   "tasks": [...],
-  "tech_stack": {"Database": "Supabase", "Frontend": "Flutter", ...},
-  "cost_analysis": {"Infrastructure": "Free Tier", "LLM API": "$2/1k req", "Total": "~$10/mo"}
+  "tech_stack": {"Database": "Firebase", "Frontend": "Flutter", ...},
+  "cost_analysis": {"Infrastructure": "Firebase Free Tier", "LLM API": "$2/1k req", "Total": "~$10/mo"}
 }
 
 Always prioritize cost-effective but scalable solutions.
@@ -49,11 +47,12 @@ class Orchestrator:
     def __init__(self, adapter: AIAdapter = None):
         self.adapter = adapter or AIAdapter()
         
-    def create_plan(self, user_request: str) -> ProjectPlan:
+    def create_plan(self, user_request: str, constraints: Dict = None) -> ProjectPlan:
         """
-        Translates user request into a structured ProjectPlan.
+        Translates user request into a structured ProjectPlan with constraints.
         """
-        full_prompt = f"{ORCHESTRATOR_SYSTEM_PROMPT}\n\nUser Request: {user_request}"
+        constraint_str = f"\nUser Constraints: {json.dumps(constraints)}" if constraints else ""
+        full_prompt = f"{ORCHESTRATOR_SYSTEM_PROMPT}\n\nUser Request: {user_request}{constraint_str}"
         
         # Call AI through the adapter
         response = self.adapter.chat(full_prompt)

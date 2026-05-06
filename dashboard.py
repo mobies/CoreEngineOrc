@@ -114,20 +114,48 @@ elif menu == "Create New Project":
     st.title("➕ Create New Project")
     st.markdown("---")
     
-    st.write("Masukkan deskripsi proyek yang ingin Anda kerjakan. Orchestrator akan merancang langkah-langkah teknisnya.")
+    col_input, col_config = st.columns([2, 1])
     
-    user_input = st.text_area("User Intent", placeholder="Contoh: Buat sistem manajemen gudang sederhana menggunakan Python...", height=150)
+    with col_input:
+        st.write("#### 1. Deskripsi Proyek")
+        user_input = st.text_area("Apa yang ingin Anda bangun?", placeholder="Contoh: Aplikasi E-commerce multiflatform...", height=200)
     
-    if st.button("Generate Rencana Project"):
+    with col_config:
+        st.write("#### 2. Konfigurasi Teknis")
+        platforms = st.multiselect("Platform Target", ["Android", "iOS", "Web", "Desktop"], default=["Android", "iOS"])
+        db_pref = st.selectbox("Database Utama", ["Firebase (Recommended)", "Supabase", "PostgreSQL", "MongoDB", "SurrealDB"])
+        backend_pref = st.selectbox("Backend Engine", ["FastAPI (Python)", "Go (Golang)", "Node.js", "Firebase Functions"])
+        budget_focus = st.select_slider("Prioritas Biaya", options=["Gratis/Hobby", "Optimal", "Enterprise/Performance"])
+        
+        # Add-ons
+        st.write("#### 3. Fitur Tambahan")
+        auth_req = st.checkbox("Sistem Login (Auth)", value=True)
+        push_req = st.checkbox("Push Notifications")
+        payment_req = st.checkbox("Payment Gateway")
+
+    st.markdown("---")
+    if st.button("🚀 Generate Rencana Project Sekarang", use_container_width=True):
         if user_input:
-            with st.spinner("AI sedang merancang rencana terbaik untuk Anda..."):
+            # Prepare constraints
+            constraints = {
+                "platforms": platforms,
+                "preferred_db": db_pref,
+                "backend": backend_pref,
+                "budget_level": budget_focus,
+                "features": {
+                    "auth": auth_req,
+                    "push_notifications": push_req,
+                    "payment_gateway": payment_req
+                }
+            }
+            
+            with st.spinner("AI Orchestrator sedang merancang sistem berdasarkan konfigurasi Anda..."):
                 try:
-                    new_plan = orch.create_plan(user_input)
+                    new_plan = orch.create_plan(user_input, constraints=constraints)
                     saved_path = sm.save_plan(new_plan)
                     st.success(f"Berhasil merancang: {new_plan.project_name}!")
                     st.balloons()
-                    # Redirect ke Dashboard
-                    st.info("Klik menu 'Dashboard' di sidebar untuk melihat rencana.")
+                    st.info("Buka menu 'Dashboard' untuk melihat hasilnya.")
                 except Exception as e:
                     st.error(f"Gagal merancang: {e}")
         else:
