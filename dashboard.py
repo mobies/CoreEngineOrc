@@ -42,36 +42,38 @@ sm = StateManager()
 # --- LOGIN PROTECTION ---
 def check_password():
     """Returns True if the user had the correct password."""
-    # Get password from Secrets (Cloud) atau Env (Local)
+    if "password_correct" not in st.session_state:
+        st.session_state.password_correct = False
+
+    # Jika sudah login sebelumnya dalam sesi ini, langsung lolos
+    if st.session_state.password_correct:
+        return True
+
+    # Ambil password dari Secrets (Cloud) atau Env (Local)
     correct_password = os.getenv("DASHBOARD_PASSWORD")
-    
-    # Deteksi Streamlit Secrets
     try:
-        import streamlit as st
         if "DASHBOARD_PASSWORD" in st.secrets:
             correct_password = st.secrets["DASHBOARD_PASSWORD"]
     except:
         pass
 
-    # Jika password tidak diset sama sekali
+    # Jika password tidak diset, bebaskan akses
     if not correct_password:
-        return True 
-
-    if "password_correct" not in st.session_state:
-        st.session_state.password_correct = False
-
-    if st.session_state.password_correct:
+        st.session_state.password_correct = True
         return True
 
-    # Show login form
+    # Tampilan Form Login
     st.title("🔐 Core Engine - Locked")
-    password_input = st.text_input("Masukkan Password Dashboard", type="password")
-    if st.button("Login"):
-        if password_input.strip() == correct_password.strip():
-            st.session_state.password_correct = True
-            st.rerun()
-        else:
-            st.error("❌ Password salah!")
+    with st.form("login_form"):
+        password_input = st.text_input("Masukkan Password Dashboard", type="password")
+        submit_button = st.form_submit_button("Login")
+        
+        if submit_button:
+            if password_input.strip() == correct_password.strip():
+                st.session_state.password_correct = True
+                st.rerun()
+            else:
+                st.error("❌ Password salah!")
     return False
 
 if not check_password():
