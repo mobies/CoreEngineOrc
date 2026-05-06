@@ -18,7 +18,14 @@ Gunakan panduan ini setiap kali Anda berpindah ke laptop/komputer baru agar peng
     *   Aktifkan venv: `.\venv\Scripts\activate` (Windows)
     *   Install Dependency: `pip install -r requirements.txt` (Jika file sudah ada).
 
-3.  **Setup API Keys:**
+3.  **Verifikasi Lingkungan (Health Check):**
+    Jalankan perintah ini untuk memastikan semua siap:
+    ```powershell
+    # Cek apakah venv aktif dan library terinstall
+    .\venv\Scripts\python.exe -c "import langchain, pydantic, dotenv; print('Semua Library Siap!')"
+    ```
+
+4.  **Setup API Keys:**
     *   Copy file `.env.example` menjadi `.env`.
     *   Isi API Key Anda di dalam file `.env`. **(Jangan pernah push file .env ke GitHub!)**
 
@@ -41,6 +48,14 @@ git commit -m "Catatan progres Anda"
 git push origin main
 ```
 *Tujuannya: Menyimpan progres dan memastikan "ingatan" saya di `docs/brain/context.md` terupdate ke cloud.*
+
+---
+
+## 4. Troubleshooting (Jika Error di Komputer Baru)
+
+*   **Python tidak ditemukan:** Pastikan Python 3.10+ terinstall dan ada di PATH.
+*   **ModuleNotFoundError:** Jalankan ulang `pip install -r requirements.txt`.
+*   **Konteks AI Terputus:** Pastikan Anda sudah melakukan `git pull` terbaru agar file `docs/brain/context.md` terbaca oleh saya.
 
 ---
 
