@@ -63,8 +63,18 @@ class AIAdapter:
         else:
             raise ValueError(f"Provider '{self.provider}' is not supported yet.")
 
-    def chat(self, prompt: str):
+    def chat(self, prompt: str) -> str:
         """
-        A simple method to send a prompt and get a response.
+        Sends a prompt and returns a clean string response.
+        Handles various response formats from different providers.
         """
-        return self.llm.invoke(prompt)
+        response = self.llm.invoke(prompt)
+        
+        # Extract content
+        content = response.content if hasattr(response, 'content') else str(response)
+        
+        # Handle list-type content (e.g., Gemini 2.0/3.0)
+        if isinstance(content, list):
+            content = "".join([str(part.get('text', part)) if isinstance(part, dict) else str(part) for part in content])
+        
+        return str(content).strip()
