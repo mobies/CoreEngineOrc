@@ -8,13 +8,13 @@ This document tracks the progress of building the Core Engine Orchestrator, desi
 *Langkah ini memastikan proyek bisa berjalan di laptop mana pun.*
 - [x] **Inisialisasi Repositori Git:** Buat repo di GitHub/GitLab (Private).
 - [x] **Struktur Folder "Project Brain":** Buat folder `docs/brain` untuk menyimpan status proyek (agar saya tidak lupa konteks).
-- [ ] **Setup Lingkungan Kerja:** 
-    - [ ] Install Python 3.10+ (Direkomendasikan untuk AI).
-    - [ ] Buat Virtual Environment (`venv`).
-- [ ] **Konfigurasi Keamanan:** 
-    - [ ] Buat file `.env.example` sebagai template API Key.
-    - [ ] Buat file `.gitignore` (Pastikan `.env` dan `venv/` tidak ter-upload).
-- [ ] **Instalasi Dependency Dasar:** (LangChain/LangGraph, Pydantic, Python-dotenv).
+- [x] **Setup Lingkungan Kerja:** 
+    - [x] Install Python 3.10+ (Direkomendasikan untuk AI).
+    - [x] Buat Virtual Environment (`venv`).
+- [x] **Konfigurasi Keamanan:** 
+    - [x] Buat file `.env.example` sebagai template API Key.
+    - [x] Buat file `.gitignore` (Pastikan `.env` dan `venv/` tidak ter-upload).
+- [x] **Instalasi Dependency Dasar:** (LangChain/LangGraph, Pydantic, Python-dotenv).
 
 ---
 
