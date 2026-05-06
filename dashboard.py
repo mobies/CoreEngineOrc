@@ -38,11 +38,16 @@ orch = Orchestrator()
 
 # Helper Functions
 def get_all_plans():
-    plans = glob.glob(os.path.join("docs/brain", "plan_*.json"))
-    plans.sort(reverse=True)
-    return plans
+    # Mengambil daftar dari Cloud/Lokal via StateManager
+    filenames = sm.list_all_projects()
+    filenames.sort(reverse=True)
+    # Mengembalikan path lengkap agar bisa dibaca load_plan
+    return [os.path.join("docs/brain", f) for f in filenames]
 
 def load_plan(filepath):
+    if not os.path.exists(filepath):
+        # Jika file tidak ada (mungkin baru didelete di cloud), return None
+        return None
     with open(filepath, 'r') as f:
         return json.load(f)
 
@@ -68,6 +73,8 @@ if menu == "Project List":
             # Grid layout for project cards
             for plan_path in plans:
                 data = load_plan(plan_path)
+                if not data: continue # Skip jika file tidak valid
+                
                 filename = os.path.basename(plan_path)
                 
                 with st.container(border=True):
@@ -75,7 +82,6 @@ if menu == "Project List":
                     with col_info:
                         st.subheader(f"📁 {data['project_name']}")
                         st.write(f"_{filename}_")
-                        # Show first task as a description or a summary if available
                         st.caption(f"Total Tasks: {data['total_tasks']} | Database: {data.get('tech_stack', {}).get('Database', 'N/A')}")
                     
                     with col_actions:
@@ -84,8 +90,8 @@ if menu == "Project List":
                             st.rerun()
                         
                         if st.button("🗑️ Delete", key=f"del_{filename}", use_container_width=True, type="secondary"):
-                            os.remove(plan_path)
-                            st.success(f"Project {data['project_name']} dihapus.")
+                            sm.delete_project(filename)
+                            st.success(f"Project dihapus.")
                             st.rerun()
     else:
         # DETAIL VIEW
