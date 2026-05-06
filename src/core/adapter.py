@@ -63,18 +63,26 @@ class AIAdapter:
         else:
             raise ValueError(f"Provider '{self.provider}' is not supported yet.")
 
-    def chat(self, prompt: str) -> str:
+    def chat(self, prompt: str) -> dict:
         """
-        Sends a prompt and returns a clean string response.
-        Handles various response formats from different providers.
+        Sends a prompt and returns a dictionary with 'content' and 'usage'.
         """
         response = self.llm.invoke(prompt)
         
         # Extract content
         content = response.content if hasattr(response, 'content') else str(response)
-        
-        # Handle list-type content (e.g., Gemini 2.0/3.0)
         if isinstance(content, list):
             content = "".join([str(part.get('text', part)) if isinstance(part, dict) else str(part) for part in content])
         
-        return str(content).strip()
+        # Extract Usage (Metrik biaya)
+        usage = {}
+        if hasattr(response, 'response_metadata'):
+            usage = response.response_metadata.get('token_usage', {})
+            # Handle OpenAI style usage if needed
+            if not usage:
+                usage = response.response_metadata.get('usage', {})
+
+        return {
+            "content": str(content).strip(),
+            "usage": usage
+        }

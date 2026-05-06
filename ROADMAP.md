@@ -51,7 +51,7 @@ This document tracks the progress of building the Core Engine Orchestrator, desi
 
 ---
 
-### 🟣 Fase 6: Antarmuka & Monitoring (User Control)
+### [x] Fase 6: Antarmuka & Monitoring (User Control)
 *Langkah ini agar Anda bisa mengontrol dan melihat prosesnya dengan mudah.*
-- [ ] **Logging & Tracing:** Dashboard sederhana (CLI atau Web) untuk melihat "isi pikiran" setiap agen.
-- [ ] **Manual Override:** Fitur agar Anda bisa menghentikan atau mengubah rencana di tengah jalan.
+- [x] **Logging & Tracing:** Dashboard dengan sistem Tab, Timeline, dan Monitoring Token.
+- [x] **Manual Override:** Fitur tambah/edit tugas dan kontrol persetujuan user.

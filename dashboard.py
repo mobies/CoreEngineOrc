@@ -155,21 +155,183 @@ if menu == "Project List":
             st.session_state.selected_project = None
             st.rerun()
             
-        st.title(f"🚀 {plan_data['project_name']}")
-        st.markdown("---")
+        # Project Header
+        st.header(f"📁 {plan_data['project_name']}")
+        st.info(f"**Description:** {plan_data.get('project_description', 'No description provided.')}")
         
-        # Metrics & Info
-        completed = sum(1 for t in plan_data['tasks'] if t['status'] == 'completed')
-        total = plan_data['total_tasks']
+        # Monitoring Row
+        if 'total_usage' in plan_data:
+            col1, col2, col3 = st.columns(3)
+            u = plan_data['total_usage']
+            col1.metric("Prompt Tokens", u.get('prompt_tokens', 0))
+            col2.metric("Completion Tokens", u.get('candidates_tokens', 0))
+            col3.metric("Total Tokens", u.get('total_tokens', 0))
         
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Tasks Completed", f"{completed}/{total}")
-        c2.metric("Budget Insight", plan_data.get('cost_analysis', {}).get('Total', 'N/A'))
-        c3.metric("Platform", ", ".join(plan_data.get('tech_stack', {}).get('Frontend', 'N/A').split(',')))
-        
-        st.progress(completed/total)
-        
-        # Tech & Cost Panels
+        # Tabs for different views
+        tab_tasks, tab_timeline = st.tabs(["📝 Tasks", "⏳ Timeline"])
+
+        with tab_tasks:
+            # Metrics
+            total_tasks = len(plan_data['tasks'])
+            completed_tasks = len([t for t in plan_data['tasks'] if t.get('finalized')])
+            progress = completed_tasks / total_tasks if total_tasks > 0 else 0
+            
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Tasks Completed", f"{completed_tasks}/{total_tasks}")
+            c2.metric("Project Status", plan_data.get('status', 'Planning').upper())
+            c3.metric("Progress", f"{progress:.0%}")
+            st.progress(progress)
+            st.markdown("---")
+
+            # Task Loop
+            for task in plan_data['tasks']:
+                with st.expander(f"Task {task['id']}: {task['title']} ({task['status']})"):
+                    # Editable Fields
+                    edited_title = st.text_input("Title", value=task['title'], key=f"title_{task['id']}")
+                    edited_desc = st.text_area("Description", value=task['description'], key=f"desc_{task['id']}")
+                    
+                    c_a, c_b = st.columns(2)
+                    with c_a:
+                        status_list = ["pending", "in_progress", "completed"]
+                        current_status = task.get('status', 'pending')
+                        if current_status not in status_list:
+                            current_status = 'pending'
+                            
+                        new_status = st.selectbox("Update Status", status_list, 
+                                                index=status_list.index(current_status),
+                                                key=f"status_{task['id']}")
+                    with c_b:
+                        agent_list = ["coder", "researcher", "reviewer"]
+                        current_agent = task.get('agent_type', 'coder')
+                        if current_agent not in agent_list:
+                            current_agent = 'coder'
+                        
+                        new_agent = st.selectbox("Agent Type", agent_list,
+                                                index=agent_list.index(current_agent),
+                                                key=f"agent_{task['id']}")
+                    
+                    if st.button("Save Changes", key=f"save_{task['id']}"):
+                        task['title'] = edited_title
+                        task['description'] = edited_desc
+                        task['status'] = new_status
+                        task['agent_type'] = new_agent
+                        with open(st.session_state.selected_project, 'w') as f:
+                            json.dump(plan_data, f, indent=4)
+                        st.success("Perubahan disimpan!")
+                        st.rerun()
+                    
+                    st.markdown("---")
+                    if st.button(f"⚡ Execute Task {task['id']}", key=f"exec_{task['id']}", use_container_width=True, type="primary"):
+                        from src.core.agent import SubAgent
+                        
+                        # Tentukan folder Sandbox (projects/nama_project)
+                        project_folder = os.path.join("projects", plan_data['project_name'].lower().replace(" ", "_"))
+                        agent = SubAgent(agent_type=task['agent_type'], base_dir=project_folder)
+                        
+                        # Update status ke in_progress segera
+                        task['status'] = 'in_progress'
+                        with open(st.session_state.selected_project, 'w') as f:
+                            json.dump(plan_data, f, indent=4)
+                        
+                        with st.spinner(f"Agent sedang bekerja..."):
+                            try:
+                                # --- QUALITY LOOP (Max 2 revisions) ---
+                                max_revisions = 2
+                                current_rev = 0
+                                feedback = ""
+                                
+                                while current_rev <= max_revisions:
+                                    context = f"Project Structure: {json.dumps(plan_data.get('folder_structure', {}))}"
+                                    if feedback:
+                                        context += f"\n\nCRITICAL FEEDBACK FROM PREVIOUS ATTEMPT:\n{feedback}"
+                                    
+                                    # Execute Task
+                                    result = agent.execute_task(task['title'], task['description'], context=context)
+                                    
+                                    # Review Task
+                                    from src.core.agent import CriticAgent
+                                    critic = CriticAgent()
+                                    review = critic.review_task(task['title'], task['description'], result['output'], result['execution_log'])
+                                    result['review'] = review
+                                    
+                                    # Simpan hasil terbaru
+                                    st.session_state[f"last_result_{task['id']}"] = result
+                                    
+                                    # Akumulasi Token (Monitoring)
+                                    if 'total_usage' not in plan_data:
+                                        plan_data['total_usage'] = {"prompt_tokens": 0, "candidates_tokens": 0, "total_tokens": 0}
+                                    
+                                    # Add usage from SubAgent
+                                    if 'usage' in result:
+                                        u = result['usage']
+                                        plan_data['total_usage']['prompt_tokens'] += u.get('prompt_tokens', 0)
+                                        plan_data['total_usage']['candidates_tokens'] += u.get('candidates_tokens', 0)
+                                        plan_data['total_usage']['total_tokens'] += u.get('total_tokens', 0)
+                                    
+                                    # Jika skor bagus atau sudah mentok revisi, keluar loop
+                                    if review['score'] >= 7 or current_rev == max_revisions:
+                                        break
+                                    
+                                    # Jika skor buruk, siapkan feedback dan ulangi
+                                    feedback = review['raw_review']
+                                    current_rev += 1
+                                    st.warning(f"Skor rendah ({review['score']}/10). Meminta revisi ke-{current_rev}...")
+                                
+                                # Update status final (set to completed tapi minta approval di UI)
+                                task['status'] = 'completed'
+                                with open(st.session_state.selected_project, 'w') as f:
+                                    json.dump(plan_data, f, indent=4)
+                                st.success(f"Agen telah menyelesaikan tugas! Silakan review dan Approve.")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Eksekusi Gagal: {e}")
+
+                    # Tampilkan hasil eksekusi terakhir jika ada di session state
+                    if f"last_result_{task['id']}" in st.session_state:
+                        res = st.session_state[f"last_result_{task['id']}"]
+                        with st.container(border=True):
+                            st.markdown(f"#### 🤖 Last Agent Report ({res.get('status', 'N/A')})")
+                            
+                            # Display Review
+                            if 'review' in res:
+                                rev = res['review']
+                                score = rev.get('score', 0)
+                                color = "green" if score >= 8 else "orange" if score >= 5 else "red"
+                                st.markdown(f"**Quality Score:** :{color}[{score}/10]")
+                                with st.expander("🔍 View Critic Feedback"):
+                                    st.write(rev.get('raw_review', 'No detail'))
+                            
+                            # Approval Button
+                            if task['status'] == 'completed' and not task.get('finalized', False):
+                                if st.button(f"✅ Approve & Finalize Task {task['id']}", key=f"app_{task['id']}", use_container_width=True):
+                                    task['finalized'] = True
+                                    with open(st.session_state.selected_project, 'w') as f:
+                                        json.dump(plan_data, f, indent=4)
+                                    st.success("Task Finalized!")
+                                    st.rerun()
+                            elif task.get('finalized'):
+                                st.success("🌟 Task Finalized & Approved")
+                            
+                            st.write(f"**Attempts:** {res.get('attempts', 1)}")
+                            st.write(f"**Last Thought:** {res.get('thought', 'N/A')}")
+                            
+                            with st.expander("View Full History & Logs"):
+                                for entry in res.get('full_history', []):
+                                    st.markdown(f"**Attempt {entry['attempt']} - Action: `{entry['action']}`**")
+                                    st.code(entry['log'])
+
+        with tab_timeline:
+            st.markdown("### ⏳ Project Timeline")
+            # Logic for timeline visualization
+            tasks = plan_data.get('tasks', [])
+            if tasks:
+                for task in tasks:
+                    status_emoji = "✅" if task.get('finalized') else "🔄" if task.get('status') == 'in_progress' else "⏳"
+                    st.write(f"{status_emoji} **Task {task['id']}: {task['title']}** - _{task.get('status', 'pending')}_")
+            else:
+                st.info("No tasks to display.")
+
+        # Folder Structure & Tech/Cost (Display only in details)
         col_t, col_c = st.columns(2)
         with col_t:
             with st.container(border=True):
@@ -191,7 +353,6 @@ if menu == "Project List":
                     st.markdown(f"**📁 {folder}/**")
                     for f in files: st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;📄 {f}")
 
-        # Tasks
         st.markdown("### 📋 Tasks")
         
         # Form to add new task
@@ -222,137 +383,10 @@ if menu == "Project List":
                         # Find index of the selected task
                         after_id = int(insert_after.split(":")[0].replace("ID ", ""))
                         idx = next(i for i, t in enumerate(plan_data['tasks']) if t['id'] == after_id)
-                        plan_data['tasks'].insert(idx + 1, new_task)
-                    
-                    plan_data['total_tasks'] = len(plan_data['tasks'])
-                    with open(st.session_state.selected_project, 'w') as f:
-                        json.dump(plan_data, f, indent=4)
-                    st.success(f"Tugas baru berhasil disisipkan!")
-                    st.rerun()
-
-        for task in plan_data['tasks']:
-            with st.expander(f"Task {task['id']}: {task['title']} ({task['status']})"):
-                # Editable Fields
-                edited_title = st.text_input("Title", value=task['title'], key=f"title_{task['id']}")
-                edited_desc = st.text_area("Description", value=task['description'], key=f"desc_{task['id']}")
-                
-                c_a, c_b = st.columns(2)
-                with c_a:
-                    status_list = ["pending", "in_progress", "completed"]
-                    current_status = task.get('status', 'pending')
-                    if current_status not in status_list:
-                        current_status = 'pending'
-                        
-                    new_status = st.selectbox("Update Status", status_list, 
-                                            index=status_list.index(current_status),
-                                            key=f"status_{task['id']}")
-                with c_b:
-                    agent_list = ["coder", "researcher", "reviewer"]
-                    current_agent = task.get('agent_type', 'coder')
-                    if current_agent not in agent_list:
-                        current_agent = 'coder'
-                    
-                    new_agent = st.selectbox("Agent Type", agent_list,
-                                            index=agent_list.index(current_agent),
-                                            key=f"agent_{task['id']}")
-                
-                if st.button("Save Changes", key=f"save_{task['id']}"):
-                    task['title'] = edited_title
-                    task['description'] = edited_desc
-                    task['status'] = new_status
-                    task['agent_type'] = new_agent
-                    with open(st.session_state.selected_project, 'w') as f:
-                        json.dump(plan_data, f, indent=4)
-                    st.success("Perubahan disimpan!")
-                    st.rerun()
-                
-                st.markdown("---")
-                if st.button(f"⚡ Execute Task {task['id']}", key=f"exec_{task['id']}", use_container_width=True, type="primary"):
-                    from src.core.agent import SubAgent
-                    
-                    # Tentukan folder Sandbox (projects/nama_project)
-                    project_folder = os.path.join("projects", plan_data['project_name'].lower().replace(" ", "_"))
-                    agent = SubAgent(agent_type=task['agent_type'], base_dir=project_folder)
-                    
-                    # Update status ke in_progress segera
-                    task['status'] = 'in_progress'
-                    with open(st.session_state.selected_project, 'w') as f:
-                        json.dump(plan_data, f, indent=4)
-                    
-                    with st.spinner(f"Agent sedang bekerja..."):
-                        try:
-                            # --- QUALITY LOOP (Max 2 revisions) ---
-                            max_revisions = 2
-                            current_rev = 0
-                            feedback = ""
-                            
-                            while current_rev <= max_revisions:
-                                context = f"Project Structure: {json.dumps(plan_data.get('folder_structure', {}))}"
-                                if feedback:
-                                    context += f"\n\nCRITICAL FEEDBACK FROM PREVIOUS ATTEMPT:\n{feedback}"
-                                
-                                # Execute Task
-                                result = agent.execute_task(task['title'], task['description'], context=context)
-                                
-                                # Review Task
-                                critic = CriticAgent()
-                                review = critic.review_task(task['title'], task['description'], result['output'], result['execution_log'])
-                                result['review'] = review
-                                
-                                # Simpan hasil terbaru
-                                st.session_state[f"last_result_{task['id']}"] = result
-                                
-                                # Jika skor bagus atau sudah mentok revisi, keluar loop
-                                if review['score'] >= 7 or current_rev == max_revisions:
-                                    break
-                                
-                                # Jika skor buruk, siapkan feedback dan ulangi
-                                feedback = review['raw_review']
-                                current_rev += 1
-                                st.warning(f"Skor rendah ({review['score']}/10). Meminta revisi ke-{current_rev}...")
-                            
-                            # Update status final (set to completed tapi minta approval di UI)
-                            task['status'] = 'completed'
-                            with open(st.session_state.selected_project, 'w') as f:
-                                json.dump(plan_data, f, indent=4)
-                            st.success(f"Agen telah menyelesaikan tugas! Silakan review dan Approve.")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Eksekusi Gagal: {e}")
-
-                # Tampilkan hasil eksekusi terakhir jika ada di session state
-                if f"last_result_{task['id']}" in st.session_state:
-                    res = st.session_state[f"last_result_{task['id']}"]
-                    with st.container(border=True):
-                        st.markdown(f"#### 🤖 Last Agent Report ({res.get('status', 'N/A')})")
-                        
-                        # Display Review
-                        if 'review' in res:
-                            rev = res['review']
-                            score = rev.get('score', 0)
-                            color = "green" if score >= 8 else "orange" if score >= 5 else "red"
-                            st.markdown(f"**Quality Score:** :{color}[{score}/10]")
-                            with st.expander("🔍 View Critic Feedback"):
-                                st.write(rev.get('raw_review', 'No detail'))
-                        
-                        # Approval Button
-                        if task['status'] == 'completed' and not task.get('finalized', False):
-                            if st.button(f"✅ Approve & Finalize Task {task['id']}", key=f"app_{task['id']}", use_container_width=True):
-                                task['finalized'] = True
-                                with open(st.session_state.selected_project, 'w') as f:
-                                    json.dump(plan_data, f, indent=4)
-                                st.success("Task Finalized!")
-                                st.rerun()
-                        elif task.get('finalized'):
-                            st.success("🌟 Task Finalized & Approved")
-                        
-                        st.write(f"**Attempts:** {res.get('attempts', 1)}")
-                        st.write(f"**Last Thought:** {res.get('thought', 'N/A')}")
-                        
-                        with st.expander("View Full History & Logs"):
-                            for entry in res.get('full_history', []):
-                                st.markdown(f"**Attempt {entry['attempt']} - Action: `{entry['action']}`**")
-                                st.code(entry['log'])
+                    st.write(f"- **{k}:** `{v}`")
+            
+            st.markdown("#### 📂 Folder Structure")
+            st.code(json.dumps(plan_data.get('folder_structure', {}), indent=4))
 
 elif menu == "Create New Project":
     st.title("➕ Create New Project")

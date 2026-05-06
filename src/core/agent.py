@@ -55,7 +55,7 @@ class SubAgent:
             """
             
             response = self.adapter.chat(prompt)
-            res_text = response if isinstance(response, str) else str(response)
+            res_text = response['content']
             
             # --- PARSING ---
             action, param, content = self._parse_response(res_text)
@@ -75,7 +75,8 @@ class SubAgent:
                 "attempt": current_attempt,
                 "thought": res_text.split("ACTION:")[0].replace("THOUGHT:", "").strip(),
                 "action": action,
-                "log": execution_log
+                "log": execution_log,
+                "usage": response.get('usage', {})
             })
 
             # Check for success
@@ -87,7 +88,9 @@ class SubAgent:
                     "thought": full_log[-1]["thought"],
                     "action": action,
                     "param": param,
-                    "full_history": full_log
+                    "full_history": full_log,
+                    "output": res_text,
+                    "usage": response.get('usage', {})
                 }
             
             # If failed, store error and loop
@@ -188,7 +191,7 @@ class CriticAgent:
         """
         
         response = self.adapter.chat(prompt)
-        res_text = response if isinstance(response, str) else str(response)
+        res_text = response['content']
         
         # Simple Parsing
         lines = res_text.split("\n")
