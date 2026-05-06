@@ -3,8 +3,12 @@ import json
 import os
 import glob
 from datetime import datetime
+from dotenv import load_dotenv
 from src.core.state import StateManager
 from src.core.orchestrator import Orchestrator
+
+# Load local environment variables
+load_dotenv()
 
 # Page Configuration
 st.set_page_config(
@@ -59,7 +63,7 @@ def check_password():
     st.title("🔐 Core Engine - Locked")
     password_input = st.text_input("Masukkan Password Dashboard", type="password")
     if st.button("Login"):
-        if password_input == correct_password:
+        if password_input.strip() == correct_password.strip():
             st.session_state.password_correct = True
             st.rerun()
         else:
