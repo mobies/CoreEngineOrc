@@ -42,6 +42,12 @@ class SubAgent:
         response = self.adapter.chat(prompt)
         res_text = response.content if hasattr(response, 'content') else str(response)
         
+        # Handle list-type content (Common in newer Gemini models)
+        if isinstance(res_text, list):
+            res_text = "".join([str(part.get('text', part)) if isinstance(part, dict) else str(part) for part in res_text])
+        
+        res_text = res_text.strip()
+        
         # --- PARSING & EXECUTION ---
         lines = res_text.split("\n")
         action = "NONE"
