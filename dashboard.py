@@ -14,25 +14,20 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for Premium Look
+# Custom CSS
 st.markdown("""
     <style>
-    .stApp {
-        background-color: #0e1117;
-    }
-    .main-card {
+    .stApp { background-color: #0e1117; }
+    .project-card {
         background-color: #1a1c24;
         padding: 20px;
         border-radius: 10px;
         border: 1px solid #30363d;
-        margin-bottom: 20px;
+        transition: 0.3s;
     }
-    .folder-box {
+    .project-card:hover {
+        border-color: #58a6ff;
         background-color: #21262d;
-        padding: 10px;
-        border-radius: 5px;
-        font-family: monospace;
-        color: #8b949e;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -41,153 +36,135 @@ st.markdown("""
 sm = StateManager()
 orch = Orchestrator()
 
-# Helper functions
+# Helper Functions
 def get_all_plans():
     plans = glob.glob(os.path.join("docs/brain", "plan_*.json"))
     plans.sort(reverse=True)
-    return [os.path.basename(p) for p in plans]
+    return plans
+
+def load_plan(filepath):
+    with open(filepath, 'r') as f:
+        return json.load(f)
 
 # Sidebar
 st.sidebar.title("🦾 Core Engine Orc")
-st.sidebar.caption("v1.1 - Industrial Dashboard")
+menu = st.sidebar.radio("Navigation", ["Project List", "Create New Project"])
 
-# Navigation
-menu = st.sidebar.radio("Navigation", ["Dashboard", "Create New Project", "Project History"])
-
-st.sidebar.markdown("---")
-st.sidebar.info("Gunakan panel ini untuk mengontrol pengerjaan proyek berbasis Multi-Agent.")
+# Session State for Routing
+if "selected_project" not in st.session_state:
+    st.session_state.selected_project = None
 
 # --- ROUTING ---
 
-if menu == "Dashboard":
-    st.title("🚀 Active Project")
-    st.markdown("---")
-    
-    plan_data = sm.load_latest_plan()
-    
-    if plan_data:
-        # Metrics
+if menu == "Project List":
+    if st.session_state.selected_project is None:
+        st.title("📂 My Projects")
+        st.markdown("---")
+        
+        plans = get_all_plans()
+        if not plans:
+            st.info("Belum ada proyek. Silakan buat proyek baru di menu sebelah kiri.")
+        else:
+            # Grid layout for project cards
+            for plan_path in plans:
+                data = load_plan(plan_path)
+                filename = os.path.basename(plan_path)
+                
+                with st.container(border=True):
+                    col_info, col_actions = st.columns([4, 1])
+                    with col_info:
+                        st.subheader(f"📁 {data['project_name']}")
+                        st.write(f"_{filename}_")
+                        # Show first task as a description or a summary if available
+                        st.caption(f"Total Tasks: {data['total_tasks']} | Database: {data.get('tech_stack', {}).get('Database', 'N/A')}")
+                    
+                    with col_actions:
+                        if st.button("View Details", key=f"view_{filename}", use_container_width=True):
+                            st.session_state.selected_project = plan_path
+                            st.rerun()
+                        
+                        if st.button("🗑️ Delete", key=f"del_{filename}", use_container_width=True, type="secondary"):
+                            os.remove(plan_path)
+                            st.success(f"Project {data['project_name']} dihapus.")
+                            st.rerun()
+    else:
+        # DETAIL VIEW
+        plan_data = load_plan(st.session_state.selected_project)
+        
+        if st.button("⬅️ Back to Project List"):
+            st.session_state.selected_project = None
+            st.rerun()
+            
+        st.title(f"🚀 {plan_data['project_name']}")
+        st.markdown("---")
+        
+        # Metrics & Info
         completed = sum(1 for t in plan_data['tasks'] if t['status'] == 'completed')
         total = plan_data['total_tasks']
         
         c1, c2, c3 = st.columns(3)
-        c1.metric("Project Name", plan_data['project_name'])
-        c2.metric("Tasks Completed", f"{completed}/{total}")
-        c3.metric("Status", "In Progress" if completed < total else "Completed")
+        c1.metric("Tasks Completed", f"{completed}/{total}")
+        c2.metric("Budget Insight", plan_data.get('cost_analysis', {}).get('Total', 'N/A'))
+        c3.metric("Platform", ", ".join(plan_data.get('tech_stack', {}).get('Frontend', 'N/A').split(',')))
         
         st.progress(completed/total)
         
-        # Tech Stack & Cost Insight
-        col_tech, col_cost = st.columns(2)
-        with col_tech:
+        # Tech & Cost Panels
+        col_t, col_c = st.columns(2)
+        with col_t:
             with st.container(border=True):
                 st.markdown("#### 🛠️ Tech Stack")
-                for cat, tech in plan_data.get('tech_stack', {}).items():
-                    st.markdown(f"**{cat}:** `{tech}`")
-        
-        with col_cost:
+                for k, v in plan_data.get('tech_stack', {}).items():
+                    st.markdown(f"**{k}:** `{v}`")
+        with col_c:
             with st.container(border=True):
                 st.markdown("#### 💰 Cost Analysis")
-                for cat, cost in plan_data.get('cost_analysis', {}).items():
-                    st.markdown(f"**{cat}:** `{cost}`")
+                for k, v in plan_data.get('cost_analysis', {}).items():
+                    st.markdown(f"**{k}:** `{v}`")
 
-        # Folder Structure Visualization
-        st.markdown("### 📂 Proposed Folder Structure")
+        # Folder Structure
+        st.markdown("### 📂 Folder Structure")
         with st.container(border=True):
-            cols = st.columns(len(plan_data.get('folder_structure', {})) or 1)
+            cols = st.columns(3)
             for i, (folder, files) in enumerate(plan_data.get('folder_structure', {}).items()):
-                with cols[i % len(cols)]:
+                with cols[i % 3]:
                     st.markdown(f"**📁 {folder}/**")
-                    for file in files:
-                        st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;📄 {file}")
+                    for f in files: st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;📄 {f}")
 
-        st.markdown("### 📋 Task Board")
+        # Tasks
+        st.markdown("### 📋 Tasks")
         for task in plan_data['tasks']:
-            with st.expander(f"Task {task['id']}: {task['title']} - [{task['status'].upper()}]"):
-                col_left, col_right = st.columns([3, 1])
-                
-                with col_left:
-                    st.write(task['description'])
-                    st.caption(f"Agent Assigned: `{task['agent_type']}`")
-                
-                with col_right:
-                    status_options = ["pending", "in_progress", "completed"]
-                    idx = status_options.index(task['status']) if task['status'] in status_options else 0
-                    
-                    new_status = st.selectbox("Update Status", status_options, index=idx, key=f"up_{task['id']}")
-                    if new_status != task['status']:
-                        sm.update_task_status(task['id'], new_status)
-                        st.rerun()
-    else:
-        st.warning("Belum ada rencana aktif.")
+            with st.expander(f"Task {task['id']}: {task['title']} ({task['status']})"):
+                st.write(task['description'])
+                new_status = st.selectbox("Update Status", ["pending", "in_progress", "completed"], 
+                                         index=["pending", "in_progress", "completed"].index(task['status']),
+                                         key=f"status_{task['id']}")
+                if new_status != task['status']:
+                    # Update in the file directly for now
+                    task['status'] = new_status
+                    with open(st.session_state.selected_project, 'w') as f:
+                        json.dump(plan_data, f, indent=4)
+                    st.rerun()
 
 elif menu == "Create New Project":
     st.title("➕ Create New Project")
     st.markdown("---")
     
-    col_input, col_config = st.columns([2, 1])
-    
-    with col_input:
+    col1, col2 = st.columns([2, 1])
+    with col1:
         st.write("#### 1. Deskripsi Proyek")
-        user_input = st.text_area("Apa yang ingin Anda bangun?", placeholder="Contoh: Aplikasi E-commerce multiflatform...", height=250)
-    
-    with col_config:
+        user_input = st.text_area("Apa yang ingin Anda bangun?", height=250)
+    with col2:
         st.write("#### 2. Konfigurasi Teknis")
-        platforms = st.multiselect("Platform Target", ["Android", "iOS", "Web", "Desktop"], default=["Android", "iOS"])
-        db_pref = st.selectbox("Database Utama", ["Firebase (Recommended)", "Supabase", "PostgreSQL", "MongoDB"])
-        backend_pref = st.selectbox("Backend Engine", ["FastAPI (Python)", "Go (Golang)", "Node.js", "Firebase Functions"])
-        budget_focus = st.select_slider("Prioritas Biaya", options=["Gratis/Hobby", "Optimal", "Enterprise/Performance"])
+        platforms = st.multiselect("Platform", ["Android", "iOS", "Web", "Desktop"], default=["Android", "iOS"])
+        db_pref = st.selectbox("Database", ["Firebase", "Supabase", "PostgreSQL", "MongoDB"])
+        backend_pref = st.selectbox("Backend", ["FastAPI", "Go", "Node.js", "Firebase Functions"])
         
-        st.write("#### 3. Git & Connectivity")
-        git_url = st.text_input("Remote Git URL", placeholder="https://github.com/user/repo.git")
-        
-        if st.button("🔍 Verifikasi Konektivitas & API", use_container_width=True):
-            has_keys = os.getenv("OPENAI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-            if has_keys:
-                st.success("✅ Environment Ready!")
-            else:
-                st.error("❌ API Keys missing in .env")
-
-    st.markdown("---")
-    if st.button("🚀 Generate Rencana Project Sekarang", use_container_width=True):
+    if st.button("🚀 Generate Rencana", use_container_width=True):
         if user_input:
-            constraints = {
-                "platforms": platforms, 
-                "db": db_pref, 
-                "backend": backend_pref,
-                "budget": budget_focus,
-                "git": git_url
-            }
-            with st.spinner("AI sedang merancang sistem, biaya, dan struktur folder..."):
-                try:
-                    new_plan = orch.create_plan(user_input, constraints=constraints)
-                    sm.save_plan(new_plan)
-                    st.success(f"Berhasil merancang: {new_plan.project_name}!")
-                    st.balloons()
-                except Exception as e:
-                    st.error(f"Gagal merancang: {e}")
-
-elif menu == "Project History":
-    st.title("📂 Project History")
-    st.markdown("---")
-    all_plans = get_all_plans()
-    if all_plans:
-        selected_file = st.selectbox("Pilih Rencana Lama", all_plans)
-        if selected_file:
-            filepath = os.path.join("docs/brain", selected_file)
-            with open(filepath, 'r') as f:
-                history_data = json.load(f)
-            
-            st.header(f"Project: {history_data['project_name']}")
-            c1, c2 = st.columns(2)
-            with c1:
-                if st.button("Jadikan Rencana Aktif", use_container_width=True):
-                    with open(os.path.join("docs/brain", "latest_plan.json"), 'w') as f:
-                        json.dump(history_data, f, indent=4)
-                    st.rerun()
-            with c2:
-                if st.checkbox("Konfirmasi Hapus"):
-                    if st.button("Hapus Permanen", type="primary", use_container_width=True):
-                        os.remove(filepath)
-                        st.rerun()
-            st.json(history_data)
+            with st.spinner("AI sedang merancang..."):
+                constraints = {"platforms": platforms, "db": db_pref, "backend": backend_pref}
+                new_plan = orch.create_plan(user_input, constraints=constraints)
+                sm.save_plan(new_plan)
+                st.success("Berhasil! Silakan cek di Project List.")
+                st.balloons()
