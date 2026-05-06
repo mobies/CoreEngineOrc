@@ -13,3 +13,8 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+# Secrets
+serviceAccountKey.json
+*.json
+!docs/brain/*.json
