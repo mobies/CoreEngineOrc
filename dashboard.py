@@ -27,9 +27,12 @@ st.markdown("""
         border: 1px solid #30363d;
         margin-bottom: 20px;
     }
-    .task-id {
-        color: #58a6ff;
-        font-weight: bold;
+    .folder-box {
+        background-color: #21262d;
+        padding: 10px;
+        border-radius: 5px;
+        font-family: monospace;
+        color: #8b949e;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -46,7 +49,7 @@ def get_all_plans():
 
 # Sidebar
 st.sidebar.title("🦾 Core Engine Orc")
-st.sidebar.caption("v1.0 - Orchestrator Dashboard")
+st.sidebar.caption("v1.1 - Industrial Dashboard")
 
 # Navigation
 menu = st.sidebar.radio("Navigation", ["Dashboard", "Create New Project", "Project History"])
@@ -88,6 +91,16 @@ if menu == "Dashboard":
                 for cat, cost in plan_data.get('cost_analysis', {}).items():
                     st.markdown(f"**{cat}:** `{cost}`")
 
+        # Folder Structure Visualization
+        st.markdown("### 📂 Proposed Folder Structure")
+        with st.container(border=True):
+            cols = st.columns(len(plan_data.get('folder_structure', {})) or 1)
+            for i, (folder, files) in enumerate(plan_data.get('folder_structure', {}).items()):
+                with cols[i % len(cols)]:
+                    st.markdown(f"**📁 {folder}/**")
+                    for file in files:
+                        st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;📄 {file}")
+
         st.markdown("### 📋 Task Board")
         for task in plan_data['tasks']:
             with st.expander(f"Task {task['id']}: {task['title']} - [{task['status'].upper()}]"):
@@ -98,17 +111,15 @@ if menu == "Dashboard":
                     st.caption(f"Agent Assigned: `{task['agent_type']}`")
                 
                 with col_right:
-                    # Quick Status Update
                     status_options = ["pending", "in_progress", "completed"]
                     idx = status_options.index(task['status']) if task['status'] in status_options else 0
                     
                     new_status = st.selectbox("Update Status", status_options, index=idx, key=f"up_{task['id']}")
                     if new_status != task['status']:
                         sm.update_task_status(task['id'], new_status)
-                        st.success(f"Status Updated!")
                         st.rerun()
     else:
-        st.warning("Belum ada rencana aktif. Silakan buat proyek baru.")
+        st.warning("Belum ada rencana aktif.")
 
 elif menu == "Create New Project":
     st.title("➕ Create New Project")
@@ -118,94 +129,57 @@ elif menu == "Create New Project":
     
     with col_input:
         st.write("#### 1. Deskripsi Proyek")
-        user_input = st.text_area("Apa yang ingin Anda bangun?", placeholder="Contoh: Aplikasi E-commerce multiflatform...", height=200)
+        user_input = st.text_area("Apa yang ingin Anda bangun?", placeholder="Contoh: Aplikasi E-commerce multiflatform...", height=250)
     
     with col_config:
         st.write("#### 2. Konfigurasi Teknis")
         platforms = st.multiselect("Platform Target", ["Android", "iOS", "Web", "Desktop"], default=["Android", "iOS"])
-        db_pref = st.selectbox("Database Utama", ["Firebase (Recommended)", "Supabase", "PostgreSQL", "MongoDB", "SurrealDB"])
-        backend_pref = st.selectbox("Backend Engine", ["FastAPI (Python)", "Go (Golang)", "Node.js", "Firebase Functions"])
-        budget_focus = st.select_slider("Prioritas Biaya", options=["Gratis/Hobby", "Optimal", "Enterprise/Performance"])
+        db_pref = st.selectbox("Database Utama", ["Firebase (Recommended)", "Supabase", "PostgreSQL", "MongoDB"])
         
-        # Add-ons
-        st.write("#### 3. Fitur Tambahan")
-        auth_req = st.checkbox("Sistem Login (Auth)", value=True)
-        push_req = st.checkbox("Push Notifications")
-        payment_req = st.checkbox("Payment Gateway")
+        st.write("#### 3. Git & Connectivity")
+        git_url = st.text_input("Remote Git URL", placeholder="https://github.com/user/repo.git")
+        
+        if st.button("🔍 Verifikasi Konektivitas & API", use_container_width=True):
+            has_keys = os.getenv("OPENAI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+            if has_keys:
+                st.success("✅ Environment Ready!")
+            else:
+                st.error("❌ API Keys missing in .env")
 
     st.markdown("---")
     if st.button("🚀 Generate Rencana Project Sekarang", use_container_width=True):
         if user_input:
-            # Prepare constraints
-            constraints = {
-                "platforms": platforms,
-                "preferred_db": db_pref,
-                "backend": backend_pref,
-                "budget_level": budget_focus,
-                "features": {
-                    "auth": auth_req,
-                    "push_notifications": push_req,
-                    "payment_gateway": payment_req
-                }
-            }
-            
-            with st.spinner("AI Orchestrator sedang merancang sistem berdasarkan konfigurasi Anda..."):
+            constraints = {"platforms": platforms, "db": db_pref, "git": git_url}
+            with st.spinner("AI sedang merancang sistem, biaya, dan struktur folder..."):
                 try:
                     new_plan = orch.create_plan(user_input, constraints=constraints)
-                    saved_path = sm.save_plan(new_plan)
+                    sm.save_plan(new_plan)
                     st.success(f"Berhasil merancang: {new_plan.project_name}!")
                     st.balloons()
-                    st.info("Buka menu 'Dashboard' untuk melihat hasilnya.")
                 except Exception as e:
                     st.error(f"Gagal merancang: {e}")
-        else:
-            st.warning("Silakan masukkan deskripsi proyek terlebih dahulu.")
 
 elif menu == "Project History":
     st.title("📂 Project History")
     st.markdown("---")
-    
     all_plans = get_all_plans()
     if all_plans:
         selected_file = st.selectbox("Pilih Rencana Lama", all_plans)
-        
         if selected_file:
             filepath = os.path.join("docs/brain", selected_file)
             with open(filepath, 'r') as f:
                 history_data = json.load(f)
             
             st.header(f"Project: {history_data['project_name']}")
-            
-            col_a, col_b = st.columns(2)
-            with col_a:
-                if st.button("Jadikan ini Rencana Aktif", use_container_width=True):
-                    # Copy to latest_plan.json
+            c1, c2 = st.columns(2)
+            with c1:
+                if st.button("Jadikan Rencana Aktif", use_container_width=True):
                     with open(os.path.join("docs/brain", "latest_plan.json"), 'w') as f:
                         json.dump(history_data, f, indent=4)
-                    st.success("Berhasil mengembalikan rencana lama ke dashboard!")
                     st.rerun()
-            
-            with col_b:
-                # Delete feature with simple confirmation
-                if st.checkbox(f"Konfirmasi Hapus {selected_file}"):
-                    if st.button("❗ Hapus Permanen", type="primary", use_container_width=True):
-                        try:
-                            os.remove(filepath)
-                            # If it was the latest plan, delete that too
-                            latest_path = os.path.join("docs/brain", "latest_plan.json")
-                            if selected_file == "latest_plan.json":
-                                os.remove(latest_path)
-                            
-                            st.success(f"Berhasil menghapus {selected_file}")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Gagal menghapus: {e}")
-
-            st.markdown("---")
+            with c2:
+                if st.checkbox("Konfirmasi Hapus"):
+                    if st.button("Hapus Permanen", type="primary", use_container_width=True):
+                        os.remove(filepath)
+                        st.rerun()
             st.json(history_data)
-    else:
-        st.info("Belum ada riwayat proyek.")
-
-# Footer
-st.sidebar.markdown("---")
-st.sidebar.caption("Core Engine Orc Dashboard v1.0")

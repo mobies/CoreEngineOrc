@@ -15,31 +15,31 @@ class ProjectPlan(BaseModel):
     project_name: str
     total_tasks: int
     tasks: List[Task]
-    tech_stack: Dict[str, str] = Field(description="Daftar teknologi yang digunakan (DB, Backend, Frontend, dll)")
-    cost_analysis: Dict[str, str] = Field(description="Estimasi biaya operasional bulanan")
+    tech_stack: Dict[str, str]
+    cost_analysis: Dict[str, str]
+    folder_structure: Dict[str, List[str]] = Field(description="Struktur folder dan file yang diusulkan")
 
 ORCHESTRATOR_SYSTEM_PROMPT = """
 You are the Master Orchestrator for Multiplatform Application Development. 
-Your goal is to design cutting-edge systems using modern technologies:
-- Frontend: Flutter, React Native, Kotlin Multiplatform.
-- Backend: Go, Rust, FastAPI (Python), Firebase Functions, Node.js.
-- Database: Firebase (Firestore/Realtime), Supabase (PostgreSQL), Turso (Edge), Pinecone (Vector), MongoDB.
-- Communication: gRPC, WebSockets, tRPC, GraphQL, Firebase Cloud Messaging.
-- Security: Clerk/Auth0, Firebase Auth, AES-256-GCM, RSA.
+Your goal is to design cutting-edge systems and their exact file structures.
 
 Your output MUST be a valid JSON object.
-You must respect the 'User Constraints' provided in the request (e.g., if the user wants Firebase, do not suggest Supabase).
+You must provide:
+1. 'tech_stack': Categories and recommended technologies.
+2. 'cost_analysis': Monthly operational cost estimates.
+3. 'folder_structure': A map representing the proposed directory tree (e.g., {"src": ["main.py", "utils/"], "docs": ["README.md"]}).
 
 Schema:
 {
   "project_name": "Name",
   "total_tasks": 3,
   "tasks": [...],
-  "tech_stack": {"Database": "Firebase", "Frontend": "Flutter", ...},
-  "cost_analysis": {"Infrastructure": "Firebase Free Tier", "LLM API": "$2/1k req", "Total": "~$10/mo"}
+  "tech_stack": {...},
+  "cost_analysis": {...},
+  "folder_structure": {"root": ["src/", "tests/", "README.md"], "src": ["api/", "models/"]}
 }
 
-Always prioritize cost-effective but scalable solutions.
+Always prioritize standard clean architecture patterns.
 Response ONLY with the JSON object.
 """
 
