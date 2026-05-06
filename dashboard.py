@@ -32,7 +32,7 @@ st.markdown("""
         font-weight: bold;
     }
     </style>
-    """, unsafe_allow_name=True)
+    """, unsafe_allow_html=True)
 
 # Initialize Managers
 sm = StateManager()
