@@ -1,66 +1,36 @@
-# Panduan Sinkronisasi Proyek (Multi-Device Setup)
+# Panduan Sinkronisasi Antar Perangkat
 
-Gunakan panduan ini setiap kali Anda berpindah ke laptop/komputer baru agar pengerjaan **Core Engine Orchestrator** tetap berlanjut dengan mulus.
+Dokumen ini menjelaskan cara melanjutkan pengerjaan **Core Engine Orc** di komputer baru.
 
----
-
-## 1. Langkah di Komputer Baru (Pertama Kali)
-
+## 1. Persiapan di Komputer Baru
 1.  **Clone Repositori:**
-    ```powershell
+    ```bash
     git clone https://github.com/mobies/CoreEngineOrc.git
     cd CoreEngineOrc
     ```
-
-2.  **Setup Environment:**
-    *   Pastikan Python 3.10+ sudah terinstall.
-    *   Buat Virtual Environment: `python -m venv venv`
-    *   Aktifkan venv: `.\venv\Scripts\activate` (Windows)
-    *   Install Dependency: `pip install -r requirements.txt` (Jika file sudah ada).
-
-3.  **Verifikasi Lingkungan (Health Check):**
-    Jalankan perintah ini untuk memastikan semua siap:
-    ```powershell
-    # Cek apakah venv aktif dan library terinstall
-    .\venv\Scripts\python.exe -c "import langchain, pydantic, dotenv; print('Semua Library Siap!')"
+2.  **Setup Virtual Environment:**
+    ```bash
+    python -m venv venv
+    .\venv\Scripts\activate
+    pip install -r requirements.txt
     ```
 
-4.  **Setup API Keys:**
-    *   Copy file `.env.example` menjadi `.env`.
-    *   Isi API Key Anda di dalam file `.env`. **(Jangan pernah push file .env ke GitHub!)**
+## 2. Pemindahan Kunci Rahasia (Manual)
+Karena alasan keamanan, file berikut tidak ada di GitHub. Anda harus menyalinnya dari komputer lama atau membuatnya ulang:
+1.  **`.env`**: Salin dari komputer lama atau gunakan `.env.example` sebagai referensi.
+2.  **`serviceAccountKey.json`**: Letakkan di folder root proyek.
 
----
-
-## 2. Alur Kerja Harian (Agar Tetap Sync)
-
-Selalu lakukan urutan ini setiap kali mulai dan selesai coding:
-
-### Sebelum Mulai (Start):
-```powershell
-git pull origin main
+## 3. Sinkronisasi Proyek (Otomatis)
+Setelah Anda menjalankan dashboard:
+```bash
+streamlit run dashboard.py
 ```
-*Tujuannya: Mengambil update terbaru dari cloud, termasuk "ingatan" saya di folder `docs/brain`.*
+Sistem akan otomatis:
+*   Mendeteksi koneksi Firebase Storage.
+*   Mendownload semua file rencana proyek (`plan_*.json`) yang ada di Cloud ke folder lokal `docs/brain/`.
+*   Anda bisa langsung melanjutkan proyek yang tertunda tanpa kehilangan data.
 
-### Setelah Selesai (Finish):
-```powershell
-git add .
-git commit -m "Catatan progres Anda"
-git push origin main
-```
-*Tujuannya: Menyimpan progres dan memastikan "ingatan" saya di `docs/brain/context.md` terupdate ke cloud.*
-
----
-
-## 4. Troubleshooting (Jika Error di Komputer Baru)
-
-*   **Python tidak ditemukan:** Pastikan Python 3.10+ terinstall dan ada di PATH.
-*   **ModuleNotFoundError:** Jalankan ulang `pip install -r requirements.txt`.
-*   **Konteks AI Terputus:** Pastikan Anda sudah melakukan `git pull` terbaru agar file `docs/brain/context.md` terbaca oleh saya.
-
----
-
-## 3. Catatan untuk Antigravity (AI Assistant)
-Saat pertama kali membuka proyek ini di komputer baru, cukup katakan:
-> *"Buka file `docs/brain/context.md` dan `ROADMAP.md` untuk sinkronisasi konteks."*
-
-Saya akan langsung memahami posisi terakhir proyek dan siap melanjutkan tugas.
+## 4. Tips Pengerjaan
+*   Selalu lakukan `git pull` sebelum memulai pengerjaan di komputer baru.
+*   Selalu lakukan `git add .`, `git commit`, dan `git push` setelah selesai pengerjaan agar perubahan kode tersimpan.
+*   Data proyek (JSON) tidak perlu di-push ke Git, karena sudah ditangani oleh Firebase Cloud Sync secara otomatis.
