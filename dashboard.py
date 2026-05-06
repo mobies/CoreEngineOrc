@@ -263,6 +263,36 @@ if menu == "Project List":
                         json.dump(plan_data, f, indent=4)
                     st.success("Perubahan disimpan!")
                     st.rerun()
+                
+                st.markdown("---")
+                if st.button(f"⚡ Execute Task {task['id']}", key=f"exec_{task['id']}", use_container_width=True, type="primary"):
+                    from src.core.agent import SubAgent
+                    agent = SubAgent(agent_type=task['agent_type'])
+                    
+                    with st.spinner(f"Agent ({task['agent_type']}) sedang bekerja..."):
+                        try:
+                            # Ambil konteks proyek (misal struktur folder)
+                            context = f"Project Structure: {json.dumps(plan_data.get('folder_structure', {}))}"
+                            result = agent.execute_task(task['title'], task['description'], context=context)
+                            
+                            st.markdown("### 🤖 Agent Report")
+                            with st.chat_message("assistant"):
+                                st.write(f"**Thought:** {result['thought']}")
+                                st.write(f"**Action:** `{result['action']}` on `{result['param']}`")
+                            
+                            with st.expander("📝 Execution Log", expanded=True):
+                                st.code(result['execution_log'])
+                            
+                            # Update status ke completed jika aksi berhasil
+                            if "Success" in result['execution_log']:
+                                task['status'] = 'completed'
+                                with open(st.session_state.selected_project, 'w') as f:
+                                    json.dump(plan_data, f, indent=4)
+                                st.success("Tugas berhasil diselesaikan oleh Agen!")
+                            else:
+                                st.warning("Agen telah mencoba, namun cek log di atas untuk status detailnya.")
+                        except Exception as e:
+                            st.error(f"Eksekusi Gagal: {e}")
 
 elif menu == "Create New Project":
     st.title("➕ Create New Project")
