@@ -269,30 +269,40 @@ if menu == "Project List":
                     from src.core.agent import SubAgent
                     agent = SubAgent(agent_type=task['agent_type'])
                     
+                    # Update status ke in_progress segera
+                    task['status'] = 'in_progress'
+                    with open(st.session_state.selected_project, 'w') as f:
+                        json.dump(plan_data, f, indent=4)
+                    
                     with st.spinner(f"Agent ({task['agent_type']}) sedang bekerja..."):
                         try:
-                            # Ambil konteks proyek (misal struktur folder)
                             context = f"Project Structure: {json.dumps(plan_data.get('folder_structure', {}))}"
                             result = agent.execute_task(task['title'], task['description'], context=context)
                             
-                            st.markdown("### 🤖 Agent Report")
-                            with st.chat_message("assistant"):
-                                st.write(f"**Thought:** {result['thought']}")
-                                st.write(f"**Action:** `{result['action']}` on `{result['param']}`")
-                            
-                            with st.expander("📝 Execution Log", expanded=True):
-                                st.code(result['execution_log'])
+                            # Simpan hasil ke session state agar tidak hilang
+                            st.session_state[f"last_result_{task['id']}"] = result
                             
                             # Update status ke completed jika aksi berhasil
                             if "Success" in result['execution_log']:
                                 task['status'] = 'completed'
                                 with open(st.session_state.selected_project, 'w') as f:
                                     json.dump(plan_data, f, indent=4)
-                                st.success("Tugas berhasil diselesaikan oleh Agen!")
+                                st.success("Tugas selesai!")
+                                st.rerun() # Muat ulang agar judul terupdate
                             else:
-                                st.warning("Agen telah mencoba, namun cek log di atas untuk status detailnya.")
+                                st.warning("Cek log eksekusi.")
                         except Exception as e:
                             st.error(f"Eksekusi Gagal: {e}")
+
+                # Tampilkan hasil eksekusi terakhir jika ada di session state
+                if f"last_result_{task['id']}" in st.session_state:
+                    res = st.session_state[f"last_result_{task['id']}"]
+                    with st.container(border=True):
+                        st.markdown("#### 🤖 Last Agent Report")
+                        st.write(f"**Thought:** {res['thought']}")
+                        st.write(f"**Action:** `{res['action']}`")
+                        with st.expander("View Full Log"):
+                            st.code(res['execution_log'])
 
 elif menu == "Create New Project":
     st.title("➕ Create New Project")
