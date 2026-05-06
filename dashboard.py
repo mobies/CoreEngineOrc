@@ -236,12 +236,22 @@ if menu == "Project List":
                 
                 c_a, c_b = st.columns(2)
                 with c_a:
-                    new_status = st.selectbox("Update Status", ["pending", "in_progress", "completed"], 
-                                            index=["pending", "in_progress", "completed"].index(task['status']),
+                    status_list = ["pending", "in_progress", "completed"]
+                    current_status = task.get('status', 'pending')
+                    if current_status not in status_list:
+                        current_status = 'pending'
+                        
+                    new_status = st.selectbox("Update Status", status_list, 
+                                            index=status_list.index(current_status),
                                             key=f"status_{task['id']}")
                 with c_b:
-                    new_agent = st.selectbox("Agent Type", ["coder", "researcher", "reviewer"],
-                                            index=["coder", "researcher", "reviewer"].index(task['agent_type']),
+                    agent_list = ["coder", "researcher", "reviewer"]
+                    current_agent = task.get('agent_type', 'coder')
+                    if current_agent not in agent_list:
+                        current_agent = 'coder'
+                    
+                    new_agent = st.selectbox("Agent Type", agent_list,
+                                            index=agent_list.index(current_agent),
                                             key=f"agent_{task['id']}")
                 
                 if st.button("Save Changes", key=f"save_{task['id']}"):
