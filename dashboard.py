@@ -42,16 +42,20 @@ sm = StateManager()
 # --- LOGIN PROTECTION ---
 def check_password():
     """Returns True if the user had the correct password."""
-    # Get password from Secrets (Cloud) or Env (Local)
+    # Get password from Secrets (Cloud) atau Env (Local)
     correct_password = os.getenv("DASHBOARD_PASSWORD")
+    
+    # Deteksi Streamlit Secrets
     try:
         import streamlit as st
-        correct_password = st.secrets.get("DASHBOARD_PASSWORD") or correct_password
+        if "DASHBOARD_PASSWORD" in st.secrets:
+            correct_password = st.secrets["DASHBOARD_PASSWORD"]
     except:
         pass
 
+    # Jika password tidak diset sama sekali
     if not correct_password:
-        return True # Password tidak diset, biarkan terbuka
+        return True 
 
     if "password_correct" not in st.session_state:
         st.session_state.password_correct = False
