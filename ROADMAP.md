@@ -34,12 +34,12 @@ This document tracks the progress of building the Core Engine Orchestrator, desi
 
 ---
 
-### 🔵 Fase 4: Sub-Agent & Execution (Pelaksana)
+### [x] Fase 4: Sub-Agent & Execution (Pelaksana)
 *Langkah ini membuat "pekerja" yang akan menjalankan perintah dari Orchestrator.*
 - [x] **Pembuatan Template Sub-Agent:** Membangun class `SubAgent` dengan kemampuan *tool-use*.
 - [x] **Protokol Komunikasi:** Integrasi eksekusi tugas dan log terminal di Dashboard.
-- [ ] **Sistem Self-Healing:** Agen bisa memperbaiki kode jika eksekusi gagal.
-- [ ] **Execution Sandbox:** Tempat di mana Sub-Agent menjalankan tugasnya (file creation, command run).
+- [x] **Sistem Self-Healing:** Agen bisa memperbaiki kode jika eksekusi gagal.
+- [x] **Execution Sandbox:** Tempat aman pengerjaan proyek di folder `projects/`.
 
 ---
 
