@@ -1,0 +1,16 @@
+# --- Core Engine Dependencies ---
+
+# Framework Agen & Orchestration
+langchain>=0.2.0
+langgraph>=0.0.50
+pydantic>=2.0.0
+
+# AI Provider Integrations
+langchain-google-genai    # Untuk Google Gemini
+langchain-openai          # Untuk OpenAI (Optional)
+langchain-anthropic       # Untuk Claude (Optional)
+
+# Utilities
+python-dotenv             # Untuk membaca file .env
+requests                  # Untuk pemanggilan API custom
+rich                      # Untuk tampilan terminal yang bagus (Monitoring)
