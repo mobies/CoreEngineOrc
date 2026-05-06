@@ -128,17 +128,39 @@ elif menu == "Project History":
         selected_file = st.selectbox("Pilih Rencana Lama", all_plans)
         
         if selected_file:
-            with open(os.path.join("docs/brain", selected_file), 'r') as f:
+            filepath = os.path.join("docs/brain", selected_file)
+            with open(filepath, 'r') as f:
                 history_data = json.load(f)
             
             st.header(f"Project: {history_data['project_name']}")
-            st.json(history_data)
             
-            if st.button("Jadikan ini Rencana Aktif"):
-                # Copy to latest_plan.json
-                with open(os.path.join("docs/brain", "latest_plan.json"), 'w') as f:
-                    json.dump(history_data, f, indent=4)
-                st.success("Berhasil mengembalikan rencana lama ke dashboard!")
+            col_a, col_b = st.columns(2)
+            with col_a:
+                if st.button("Jadikan ini Rencana Aktif", use_container_width=True):
+                    # Copy to latest_plan.json
+                    with open(os.path.join("docs/brain", "latest_plan.json"), 'w') as f:
+                        json.dump(history_data, f, indent=4)
+                    st.success("Berhasil mengembalikan rencana lama ke dashboard!")
+                    st.rerun()
+            
+            with col_b:
+                # Delete feature with simple confirmation
+                if st.checkbox(f"Konfirmasi Hapus {selected_file}"):
+                    if st.button("❗ Hapus Permanen", type="primary", use_container_width=True):
+                        try:
+                            os.remove(filepath)
+                            # If it was the latest plan, delete that too
+                            latest_path = os.path.join("docs/brain", "latest_plan.json")
+                            if selected_file == "latest_plan.json":
+                                os.remove(latest_path)
+                            
+                            st.success(f"Berhasil menghapus {selected_file}")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Gagal menghapus: {e}")
+
+            st.markdown("---")
+            st.json(history_data)
     else:
         st.info("Belum ada riwayat proyek.")
 
