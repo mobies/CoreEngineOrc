@@ -20,8 +20,8 @@ This document tracks the progress of building the Core Engine Orchestrator, desi
 
 ### 🟡 Fase 2: Arsitektur API Gateway (Fleksibilitas LLM)
 *Langkah ini agar Anda bisa berganti-ganti model AI (Gemini, GPT, Claude, dll).*
-- [ ] **Desain Model Adapter:** Membuat class abstraksi agar Core Engine tidak tergantung pada satu provider saja.
-- [ ] **Integrasi API Multi-Provider:** Menambahkan modul untuk membaca API Key dari `.env` secara dinamis.
+- [x] **Desain Model Adapter:** Membuat class abstraksi agar Core Engine tidak tergantung pada satu provider saja.
+- [x] **Integrasi API Multi-Provider:** Menambahkan modul untuk membaca API Key dari `.env` secara dinamis.
 - [ ] **Uji Coba Koneksi:** Skrip sederhana untuk memastikan Core Engine bisa memanggil berbagai AI yang berbeda.
 
 ---
