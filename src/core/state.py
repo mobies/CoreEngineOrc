@@ -22,6 +22,25 @@ class StateManager:
         self._init_firebase()
 
     def _init_firebase(self):
+        # Try to get from Streamlit Secrets first (for Cloud Deployment)
+        try:
+            import streamlit as st
+            if "firebase" in st.secrets:
+                secret_dict = dict(st.secrets["firebase"])
+                bucket_name = st.secrets.get("FIREBASE_STORAGE_BUCKET")
+                
+                if not firebase_admin._apps:
+                    cred = credentials.Certificate(secret_dict)
+                    firebase_admin.initialize_app(cred, {
+                        'storageBucket': bucket_name
+                    })
+                self.bucket = storage.bucket()
+                self.firebase_enabled = True
+                return
+        except:
+            pass
+
+        # Fallback to Local (.env and file)
         service_account = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH")
         bucket_name = os.getenv("FIREBASE_STORAGE_BUCKET")
         
@@ -34,7 +53,6 @@ class StateManager:
                     })
                 self.bucket = storage.bucket()
                 self.firebase_enabled = True
-                print("[INFO] Firebase Cloud Sync Aktif.")
             except Exception as e:
                 print(f"[WARNING] Gagal inisialisasi Firebase: {e}")
 

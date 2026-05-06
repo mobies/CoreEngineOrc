@@ -14,32 +14,49 @@ class AIAdapter:
     """
     
     def __init__(self, provider: Optional[str] = None, model_name: Optional[str] = None):
-        # Default to environment variables if not provided
-        self.provider = provider or os.getenv("DEFAULT_PROVIDER", "google").lower()
-        self.model_name = model_name or os.getenv("DEFAULT_MODEL", "gemini-1.5-pro")
+        # Default to environment variables or st.secrets
+        try:
+            import streamlit as st
+            cloud_provider = st.secrets.get("DEFAULT_PROVIDER")
+            cloud_model = st.secrets.get("DEFAULT_MODEL")
+        except:
+            cloud_provider = None
+            cloud_model = None
+
+        self.provider = provider or cloud_provider or os.getenv("DEFAULT_PROVIDER", "google").lower()
+        self.model_name = model_name or cloud_model or os.getenv("DEFAULT_MODEL", "gemini-1.5-pro")
         self.llm = self._initialize_llm()
 
     def _initialize_llm(self):
         """
-        Initializes the specific LLM based on the provider.
+        Initializes the specific LLM based on the provider, checking Streamlit Secrets if available.
         """
+        google_key = os.getenv("GOOGLE_API_KEY")
+        openai_key = os.getenv("OPENAI_API_KEY")
+        anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+
+        try:
+            import streamlit as st
+            google_key = st.secrets.get("GOOGLE_API_KEY") or google_key
+            openai_key = st.secrets.get("OPENAI_API_KEY") or openai_key
+            anthropic_key = st.secrets.get("ANTHROPIC_API_KEY") or anthropic_key
+        except:
+            pass
+
         if self.provider == "google":
-            api_key = os.getenv("GOOGLE_API_KEY")
-            if not api_key:
-                raise ValueError("GOOGLE_API_KEY not found in environment.")
-            return ChatGoogleGenerativeAI(model=self.model_name, google_api_key=api_key)
+            if not google_key:
+                raise ValueError("GOOGLE_API_KEY not found.")
+            return ChatGoogleGenerativeAI(model=self.model_name, google_api_key=google_key)
         
         elif self.provider == "openai":
-            api_key = os.getenv("OPENAI_API_KEY")
-            if not api_key:
-                raise ValueError("OPENAI_API_KEY not found in environment.")
-            return ChatOpenAI(model=self.model_name, openai_api_key=api_key)
+            if not openai_key:
+                raise ValueError("OPENAI_API_KEY not found.")
+            return ChatOpenAI(model=self.model_name, openai_api_key=openai_key)
             
         elif self.provider == "anthropic":
-            api_key = os.getenv("ANTHROPIC_API_KEY")
-            if not api_key:
-                raise ValueError("ANTHROPIC_API_KEY not found in environment.")
-            return ChatAnthropic(model=self.model_name, anthropic_api_key=api_key)
+            if not anthropic_key:
+                raise ValueError("ANTHROPIC_API_KEY not found.")
+            return ChatAnthropic(model=self.model_name, anthropic_api_key=anthropic_key)
         
         else:
             raise ValueError(f"Provider '{self.provider}' is not supported yet.")
@@ -49,11 +66,3 @@ class AIAdapter:
         A simple method to send a prompt and get a response.
         """
         return self.llm.invoke(prompt)
-
-if __name__ == "__main__":
-    # Test simple initialization
-    try:
-        adapter = AIAdapter()
-        print(f"✅ AI Adapter initialized for provider: {adapter.provider} with model: {adapter.model_name}")
-    except Exception as e:
-        print(f"❌ Initialization failed: {e}")
