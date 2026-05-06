@@ -135,6 +135,8 @@ elif menu == "Create New Project":
         st.write("#### 2. Konfigurasi Teknis")
         platforms = st.multiselect("Platform Target", ["Android", "iOS", "Web", "Desktop"], default=["Android", "iOS"])
         db_pref = st.selectbox("Database Utama", ["Firebase (Recommended)", "Supabase", "PostgreSQL", "MongoDB"])
+        backend_pref = st.selectbox("Backend Engine", ["FastAPI (Python)", "Go (Golang)", "Node.js", "Firebase Functions"])
+        budget_focus = st.select_slider("Prioritas Biaya", options=["Gratis/Hobby", "Optimal", "Enterprise/Performance"])
         
         st.write("#### 3. Git & Connectivity")
         git_url = st.text_input("Remote Git URL", placeholder="https://github.com/user/repo.git")
@@ -149,7 +151,13 @@ elif menu == "Create New Project":
     st.markdown("---")
     if st.button("🚀 Generate Rencana Project Sekarang", use_container_width=True):
         if user_input:
-            constraints = {"platforms": platforms, "db": db_pref, "git": git_url}
+            constraints = {
+                "platforms": platforms, 
+                "db": db_pref, 
+                "backend": backend_pref,
+                "budget": budget_focus,
+                "git": git_url
+            }
             with st.spinner("AI sedang merancang sistem, biaya, dan struktur folder..."):
                 try:
                     new_plan = orch.create_plan(user_input, constraints=constraints)
