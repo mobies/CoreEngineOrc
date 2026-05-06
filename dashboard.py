@@ -34,7 +34,13 @@ st.markdown("""
 
 # Initialize Managers
 sm = StateManager()
-orch = Orchestrator()
+
+try:
+    orch = Orchestrator()
+    orch_error = None
+except Exception as e:
+    orch = None
+    orch_error = str(e)
 
 # Helper Functions
 def get_all_plans():
@@ -62,6 +68,10 @@ if "selected_project" not in st.session_state:
 # --- ROUTING ---
 
 if menu == "Project List":
+    if orch_error:
+        st.error(f"⚠️ **Konfigurasi AI Gagal:** {orch_error}")
+        st.info("Pastikan GOOGLE_API_KEY sudah dimasukkan ke dalam .env (Lokal) atau Streamlit Secrets (Cloud).")
+    
     if st.session_state.selected_project is None:
         st.title("📂 My Projects")
         st.markdown("---")
