@@ -139,21 +139,35 @@ if menu == "Project List":
             new_title = st.text_input("Task Title")
             new_desc = st.text_area("Task Description")
             new_agent = st.selectbox("Agent Type", ["coder", "researcher", "reviewer"])
+            
+            # Insertion Position
+            task_titles = [f"ID {t['id']}: {t['title']}" for t in plan_data['tasks']]
+            insert_after = st.selectbox("Insert After Task", ["(At the End)"] + task_titles)
+            
             if st.button("Add Task to Project"):
                 if new_title and new_desc:
                     new_id = max([t['id'] for t in plan_data['tasks']]) + 1 if plan_data['tasks'] else 1
-                    plan_data['tasks'].append({
+                    new_task = {
                         "id": new_id,
                         "title": new_title,
                         "description": new_desc,
                         "agent_type": new_agent,
                         "status": "pending",
                         "dependencies": []
-                    })
+                    }
+                    
+                    if insert_after == "(At the End)":
+                        plan_data['tasks'].append(new_task)
+                    else:
+                        # Find index of the selected task
+                        after_id = int(insert_after.split(":")[0].replace("ID ", ""))
+                        idx = next(i for i, t in enumerate(plan_data['tasks']) if t['id'] == after_id)
+                        plan_data['tasks'].insert(idx + 1, new_task)
+                    
                     plan_data['total_tasks'] = len(plan_data['tasks'])
                     with open(st.session_state.selected_project, 'w') as f:
                         json.dump(plan_data, f, indent=4)
-                    st.success(f"Tugas baru '{new_title}' berhasil ditambahkan!")
+                    st.success(f"Tugas baru berhasil disisipkan!")
                     st.rerun()
 
         for task in plan_data['tasks']:
