@@ -133,17 +133,53 @@ if menu == "Project List":
 
         # Tasks
         st.markdown("### 📋 Tasks")
-        for task in plan_data['tasks']:
-            with st.expander(f"Task {task['id']}: {task['title']} ({task['status']})"):
-                st.write(task['description'])
-                new_status = st.selectbox("Update Status", ["pending", "in_progress", "completed"], 
-                                         index=["pending", "in_progress", "completed"].index(task['status']),
-                                         key=f"status_{task['id']}")
-                if new_status != task['status']:
-                    # Update in the file directly for now
-                    task['status'] = new_status
+        
+        # Form to add new task
+        with st.expander("➕ Add New Task / Module"):
+            new_title = st.text_input("Task Title")
+            new_desc = st.text_area("Task Description")
+            new_agent = st.selectbox("Agent Type", ["coder", "researcher", "reviewer"])
+            if st.button("Add Task to Project"):
+                if new_title and new_desc:
+                    new_id = max([t['id'] for t in plan_data['tasks']]) + 1 if plan_data['tasks'] else 1
+                    plan_data['tasks'].append({
+                        "id": new_id,
+                        "title": new_title,
+                        "description": new_desc,
+                        "agent_type": new_agent,
+                        "status": "pending",
+                        "dependencies": []
+                    })
+                    plan_data['total_tasks'] = len(plan_data['tasks'])
                     with open(st.session_state.selected_project, 'w') as f:
                         json.dump(plan_data, f, indent=4)
+                    st.success(f"Tugas baru '{new_title}' berhasil ditambahkan!")
+                    st.rerun()
+
+        for task in plan_data['tasks']:
+            with st.expander(f"Task {task['id']}: {task['title']} ({task['status']})"):
+                # Editable Fields
+                edited_title = st.text_input("Title", value=task['title'], key=f"title_{task['id']}")
+                edited_desc = st.text_area("Description", value=task['description'], key=f"desc_{task['id']}")
+                
+                c_a, c_b = st.columns(2)
+                with c_a:
+                    new_status = st.selectbox("Update Status", ["pending", "in_progress", "completed"], 
+                                            index=["pending", "in_progress", "completed"].index(task['status']),
+                                            key=f"status_{task['id']}")
+                with c_b:
+                    new_agent = st.selectbox("Agent Type", ["coder", "researcher", "reviewer"],
+                                            index=["coder", "researcher", "reviewer"].index(task['agent_type']),
+                                            key=f"agent_{task['id']}")
+                
+                if st.button("Save Changes", key=f"save_{task['id']}"):
+                    task['title'] = edited_title
+                    task['description'] = edited_desc
+                    task['status'] = new_status
+                    task['agent_type'] = new_agent
+                    with open(st.session_state.selected_project, 'w') as f:
+                        json.dump(plan_data, f, indent=4)
+                    st.success("Perubahan disimpan!")
                     st.rerun()
 
 elif menu == "Create New Project":
